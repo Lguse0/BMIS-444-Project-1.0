@@ -2,6 +2,102 @@ import streamlit as st
 import sqlite3
 from datetime import datetime
 
+import sqlite3
+
+def get_connection():
+    return sqlite3.connect("film_tracker.db")
+
+def create_tables():
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL UNIQUE,
+        email TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS directors (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        first_name TEXT NOT NULL,
+        last_name TEXT NOT NULL,
+        birth_date DATE,
+        nationality TEXT
+    );
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS films (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        release_date DATE,
+        genre TEXT,
+        runtime_minutes INTEGER,
+        description TEXT,
+        director_id INTEGER,
+        FOREIGN KEY (director_id) REFERENCES directors(id)
+            ON DELETE SET NULL
+    );
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS ratings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        film_id INTEGER NOT NULL,
+        rating_score REAL NOT NULL,
+        review_text TEXT,
+        watched_date DATE DEFAULT (DATE('now')),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, film_id),
+        FOREIGN KEY (user_id) REFERENCES users(id)
+            ON DELETE CASCADE,
+        FOREIGN KEY (film_id) REFERENCES films(id)
+            ON DELETE CASCADE
+    );
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS watchlist (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        film_id INTEGER NOT NULL,
+        added_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        priority_level INTEGER DEFAULT 3,
+        UNIQUE(user_id, film_id),
+        FOREIGN KEY (user_id) REFERENCES users(id)
+            ON DELETE CASCADE,
+        FOREIGN KEY (film_id) REFERENCES films(id)
+            ON DELETE CASCADE
+    );
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS coming_soon (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        film_id INTEGER NOT NULL,
+        release_date DATE NOT NULL,
+        trailer_url TEXT,
+        platform TEXT,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(film_id),
+        FOREIGN KEY (film_id) REFERENCES films(id)
+            ON DELETE CASCADE
+    );
+    """)
+
+    conn.commit()
+    conn.close()
+
+# Run once when app starts
+create_tables()
+
 st.set_page_config(page_title="Film Tracker Home", page_icon="🎬")
 
 # -------------------------------
